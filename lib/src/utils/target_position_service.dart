@@ -39,6 +39,7 @@ class TargetPositionService {
   /// - Supporting different ancestral coordinate systems.
   TargetPositionService({
     required this.renderBox,
+    required this.overlayBox,
     required this.screenSize,
     this.padding = EdgeInsets.zero,
     this.rootRenderObject,
@@ -47,6 +48,7 @@ class TargetPositionService {
   }
 
   final RenderBox? renderBox;
+  final RenderBox? overlayBox;
   final EdgeInsets padding;
   final Size screenSize;
   final RenderObject? rootRenderObject;
@@ -160,7 +162,7 @@ class TargetPositionService {
     if (box == null) return Offset.zero;
 
     return box.size.topLeft(
-      box.localToGlobal(Offset.zero, ancestor: rootRenderObject),
+      box.localToGlobal(Offset.zero, ancestor: overlayBox ?? rootRenderObject),
     );
   }
 
@@ -176,7 +178,7 @@ class TargetPositionService {
 
     _boxOffset = renderBox?.localToGlobal(
       Offset.zero,
-      ancestor: rootRenderObject,
+      ancestor: overlayBox ?? rootRenderObject,
     );
   }
 

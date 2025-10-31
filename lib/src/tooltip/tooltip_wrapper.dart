@@ -165,11 +165,17 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
     );
     // Calculate the target position and size
     final box = widget.showcaseController.position?.renderBox;
+    final overlayBox = widget.showcaseController.position?.overlayBox;
     // This is a workaround to avoid the error when the widget is not mounted
     // but won't happen in general cases
-    if (box == null || !box.attached) return const SizedBox.shrink();
+    if (box == null ||
+        !box.attached ||
+        overlayBox == null ||
+        !overlayBox.attached) {
+      return const SizedBox.shrink();
+    }
 
-    final targetPosition = box.localToGlobal(Offset.zero);
+    final targetPosition = box.localToGlobal(Offset.zero, ancestor: overlayBox);
     final targetSize = box.size;
 
     final defaultToolTipWidget = widget.container != null
@@ -238,7 +244,7 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
             widget.tooltipActionConfig.gapBetweenContentAndAction,
         screenEdgePadding: widget.toolTipMargin,
         showcaseOffset: widget.showcaseController.rootRenderObject
-                ?.localToGlobal(Offset.zero) ??
+                ?.localToGlobal(Offset.zero, ancestor: overlayBox) ??
             Offset.zero,
         targetTooltipGap: widget.targetTooltipGap,
         children: [

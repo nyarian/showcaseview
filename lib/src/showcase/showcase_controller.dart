@@ -243,12 +243,14 @@ class ShowcaseController {
   void updateControllerData() {
     if (!_mounted) return;
     final renderBox = _context.findRenderObject() as RenderBox?;
+    final overlayBox = Overlay.of(_context).context.findRenderObject() as RenderBox?;
     final screenSize = MediaQuery.sizeOf(_context);
     final size = rootWidgetSize ?? screenSize;
     final newPosition = TargetPositionService(
       rootRenderObject: rootRenderObject,
       screenSize: size,
       renderBox: renderBox,
+      overlayBox: overlayBox,
       padding: config.targetPadding,
     );
 
