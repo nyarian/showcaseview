@@ -107,16 +107,14 @@ class TargetPositionService {
       return _cachedRectForOverlay!;
     }
 
-    final topLeft = renderBox!.size.topLeft(_boxOffset!);
-    final bottomRight = renderBox!.size.bottomRight(_boxOffset!);
+    // Compute top-left in overlay coordinate space when possible
+    final offset = renderBox!.localToGlobal(Offset.zero, ancestor: overlayBox!);
+
+    // Build rect directly from render box size
+    final rect = offset & renderBox!.size;
 
     _dimensionsChanged = false;
-    return _cachedRectForOverlay = Rect.fromLTRB(
-      topLeft.dx,
-      topLeft.dy,
-      bottomRight.dx,
-      bottomRight.dy,
-    );
+    return _cachedRectForOverlay = rect;
   }
 
   /// Gets the bottom edge position of the target widget with padding.
@@ -167,7 +165,15 @@ class TargetPositionService {
   }
 
   /// Gets the center position of the target widget in global coordinates.
-  Offset getOffset() => renderBox?.size.center(topLeft()) ?? Offset.zero;
+  Offset getOffset() {
+    if (renderBox == null) return Offset.zero;
+    // Use overlay-relative coordinates if overlayBox exists
+    if (overlayBox != null) {
+      return renderBox!.localToGlobal(Offset.zero, ancestor: overlayBox!);
+    }
+    // Fallback to global if overlay not available
+    return renderBox!.localToGlobal(Offset.zero);
+  }
 
   /// Calculates and stores the global position of the render box.
   ///
