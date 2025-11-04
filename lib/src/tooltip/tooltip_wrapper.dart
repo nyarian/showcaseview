@@ -163,26 +163,29 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
       'Provide either a custom container or a title/description for the tooltip.',
     );
 
-    final box = widget.showcaseController.position?.renderBox;
-    final overlayBox = widget.showcaseController.position?.overlayBox;
+    // 1) Use the exact rect the highlight uses.
+    final linked = widget.showcaseController.linkedShowcaseDataModel;
+    final rect = linked?.rect ?? Rect.zero;
+    if (rect == Rect.zero) return const SizedBox.shrink();
 
-    // Early exit if widget is not yet mounted or overlay not found
-    if (box == null ||
-        overlayBox == null ||
-        !box.attached ||
-        !overlayBox.attached) {
+    // 2) Overlay-local anchor and size.
+    Offset targetPosition = rect.topLeft;
+    final Size targetSize = rect.size;
+
+    // Optional: snap to device pixels to avoid 1–2 px drift on web/mobile.
+    final dpr = View.of(context).devicePixelRatio;
+    double snap(double v) => (v * dpr).round() / dpr;
+    targetPosition = Offset(snap(targetPosition.dx), snap(targetPosition.dy));
+
+    // 3) Overlay’s size must come from the overlay itself.
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlayBox == null || !overlayBox.attached) {
       return const SizedBox.shrink();
     }
+    final Size screenSize = overlayBox.size;
 
-    // --- COORDINATE NORMALIZATION ---
-    final position = widget.showcaseController.position;
-    if (position == null) return const SizedBox.shrink();
-    final targetPosition = position.getOffset(); // already in overlay space
-    final targetSize = position.renderBox?.size ?? Size.zero;
-
-    // The overlay defines our coordinate space.
-    // Using its size ensures consistent screen bounds on web and mobile.
-    final screenSize = overlayBox.size;
+    // Tooltip content
     final defaultTooltip = widget.container != null
         ? MouseRegion(
             cursor: widget.onTooltipTap == null
@@ -227,7 +230,6 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
             ),
           );
 
-    // --- RETURN RENDERED TOOLTIP WRAPPER ---
     return Material(
       type: MaterialType.transparency,
       child: _AnimatedTooltipMultiLayout(
@@ -235,10 +237,10 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
         moveController: _movingAnimationController,
         scaleAnimation: _scaleAnimation,
         moveAnimation: _movingAnimation,
-        targetPosition: targetPosition,
-        targetSize: targetSize,
+        targetPosition: targetPosition, // ← from linked rect
+        targetSize: targetSize, // ← from linked rect
         position: widget.tooltipPosition,
-        screenSize: screenSize,
+        screenSize: screenSize, // ← overlay size
         hasArrow: widget.showArrow,
         targetPadding: widget.targetPadding,
         scaleAlignment: widget.scaleAnimationAlignment,
@@ -251,11 +253,6 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
         screenEdgePadding: widget.toolTipMargin,
         targetTooltipGap: widget.targetTooltipGap,
         children: [
-          // We have to use UniqueKey here to avoid the issue with the
-          // _TooltipLayoutId being reused and causing layout issues
-          // See: documentation of [MultiChildRenderObjectWidget] for more
-          // details and to reproduce issue navigate to details screen in
-          // example app with route transition
           _TooltipLayoutId(
             id: TooltipLayoutSlot.tooltipBox,
             key: UniqueKey(),
