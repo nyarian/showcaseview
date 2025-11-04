@@ -243,8 +243,7 @@ class ShowcaseController {
   void updateControllerData() {
     if (!_mounted) return;
     final renderBox = _context.findRenderObject() as RenderBox?;
-    final overlayBox =
-        Overlay.of(_context).context.findRenderObject() as RenderBox?;
+    final overlayBox = rootRenderObject;
     final screenSize = MediaQuery.sizeOf(_context);
     final size = rootWidgetSize ?? screenSize;
 
@@ -266,7 +265,6 @@ class ShowcaseController {
       isCircle: config.targetShapeBorder is CircleBorder,
     );
 
-    // Use overlay-space offset (same origin as rect)
     _buildOverlayOnTarget(
       offset: rect.topLeft,
       size: rect.size,

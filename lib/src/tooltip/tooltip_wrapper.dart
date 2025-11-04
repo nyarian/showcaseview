@@ -167,15 +167,15 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
     final rect = linked?.rect ?? Rect.zero;
     if (rect == Rect.zero) return const SizedBox.shrink();
 
-    final targetPosition = rect.topLeft;
-    final targetSize = rect.size;
-
-    final overlayBox =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final overlayBox = widget.showcaseController.rootRenderObject;
     if (overlayBox == null || !overlayBox.attached) {
       return const SizedBox.shrink();
     }
-    final screenSize = overlayBox.size;
+    final screenSize =
+        widget.showcaseController.rootWidgetSize ?? MediaQuery.sizeOf(context);
+
+    final targetPosition = rect.topLeft;
+    final targetSize = rect.size;
 
     final defaultTooltip = widget.container != null
         ? MouseRegion(

@@ -41,12 +41,12 @@ class TargetPositionService {
     required this.screenSize,
     this.padding = EdgeInsets.zero,
     this.rootRenderObject,
-  });
+  }) : assert(overlayBox != null, 'overlayBox must be the ROOT overlay');
 
   final RenderBox? renderBox;
-  final RenderBox? overlayBox;
+  final RenderBox? overlayBox; // root overlay RenderBox
   final EdgeInsets padding;
-  final Size screenSize;
+  final Size screenSize; // == overlayBox.size
   final RenderObject? rootRenderObject;
 
   // Caching fields to avoid redundant calculations
@@ -56,16 +56,11 @@ class TargetPositionService {
   // Flag to track if dimensions have changed and cache needs to be invalidated
   bool _dimensionsChanged = true;
 
-  /// Calculates the rectangle representing the target widget with padding
-  ///
-  /// This method returns a rectangle that represents the target widget's bounds
-  /// including any padding, clamped to stay within the screen boundaries.
-  /// Used by the showcase system to determine where to draw highlight effects.
+  /// Highlight rect = overlay rect ± padding, clamped to overlay bounds.
   Rect getRect() {
     if (renderBox == null) return Rect.zero;
-    if (_cachedRect != null && !_dimensionsChanged) {
-      return _cachedRect!;
-    }
+    if (_cachedRect != null && !_dimensionsChanged) return _cachedRect!;
+
     final r = _computeOverlayRect();
     final left = (r.left - padding.left).clamp(0.0, screenSize.width);
     final top = (r.top - padding.top).clamp(0.0, screenSize.height);
@@ -75,10 +70,8 @@ class TargetPositionService {
     return _cachedRect = Rect.fromLTRB(left, top, right, bottom);
   }
 
-  /// Canonical rect in the overlay's coordinate space.
   Rect _computeOverlayRect() {
     final rb = renderBox!;
-    // Always resolve against overlay when present. No fallbacks that change space.
     final origin = rb.localToGlobal(Offset.zero, ancestor: overlayBox);
     return origin & rb.size;
   }
@@ -102,7 +95,5 @@ class TargetPositionService {
   double getCenter() => (getLeft() + getRight()) * 0.5;
 
   Offset topLeft() => getRectForOverlay().topLeft;
-
-  /// Overlay-local center (used by controller call sites)
   Offset getOffset() => getRectForOverlay().center;
 }

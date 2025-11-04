@@ -181,8 +181,7 @@ class _RenderAnimationDelegate extends _RenderPositionDelegate {
       toolTipSlideEndDistance,
     );
 
-    final double s =
-        (_scaleAnimation.value == 0) ? 0.0001 : _scaleAnimation.value;
+    final double s = math.max(_scaleAnimation.value, 1e-6);
 
     // Iterate children in reverse paint order for correct hit test priority
     RenderBox? child = lastChild;
