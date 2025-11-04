@@ -247,8 +247,7 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
         gapBetweenContentAndAction:
             widget.tooltipActionConfig.gapBetweenContentAndAction,
         screenEdgePadding: widget.toolTipMargin,
-        // showcaseOffset is unused now since everything is overlay-local.
-        showcaseOffset: Offset.zero,
+        showcaseOffset: overlayBox.localToGlobal(Offset.zero),
         targetTooltipGap: widget.targetTooltipGap,
         children: [
           // We have to use UniqueKey here to avoid the issue with the

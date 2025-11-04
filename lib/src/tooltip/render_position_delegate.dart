@@ -88,7 +88,9 @@ class _RenderPositionDelegate extends RenderBox
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    return defaultHitTestChildren(result, position: position);
+    // On web, pointer offsets are in the global coordinate system.
+    final localPosition = position - showcaseOffset;
+    return defaultHitTestChildren(result, position: localPosition);
   }
 
   // Layout properties - keep only those not managed by RenderObjectManager
@@ -123,11 +125,6 @@ class _RenderPositionDelegate extends RenderBox
 
   set _yOffset(double value) =>
       TooltipLayoutSlot.tooltipBox.getObjectManager?.yOffset = value;
-
-  /// Target position normalized into the render delegate's local coordinate
-  /// space. This avoids double-applying `showcaseOffset` when `targetPosition`
-  /// is already in overlay coordinates.
-  Offset get _localTargetPosition => targetPosition - showcaseOffset;
 
   double get _getArrowPadding => hasArrow
       ? Constants.withArrowToolTipPadding
@@ -317,7 +314,7 @@ class _RenderPositionDelegate extends RenderBox
 
     // Calculate minimum width that would fit
     final minWidth = isLeftEdge
-        ? _localTargetPosition.dx -
+        ? targetPosition.dx -
             screenEdgePadding -
             targetTooltipGap -
             targetPadding.left -
@@ -589,7 +586,7 @@ class _RenderPositionDelegate extends RenderBox
       case TooltipPosition.bottom:
         // Flip from bottom to top
         tooltipPosition = TooltipPosition.top;
-        _yOffset = _localTargetPosition.dy -
+        _yOffset = targetPosition.dy -
             _toolTipBoxSize.height -
             targetTooltipGap -
             _getArrowPadding -
@@ -598,7 +595,7 @@ class _RenderPositionDelegate extends RenderBox
       case TooltipPosition.top:
         // Flip from top to bottom
         tooltipPosition = TooltipPosition.bottom;
-        _yOffset = _localTargetPosition.dy +
+        _yOffset = targetPosition.dy +
             targetSize.height +
             targetTooltipGap +
             _getArrowPadding +
@@ -607,7 +604,7 @@ class _RenderPositionDelegate extends RenderBox
       case TooltipPosition.left:
         // Flip from left to right
         tooltipPosition = TooltipPosition.right;
-        _xOffset = _localTargetPosition.dx +
+        _xOffset = targetPosition.dx +
             targetSize.width +
             targetTooltipGap +
             _getArrowPadding +
@@ -616,7 +613,7 @@ class _RenderPositionDelegate extends RenderBox
       case TooltipPosition.right:
         // Flip from right to left
         tooltipPosition = TooltipPosition.left;
-        _xOffset = _localTargetPosition.dx -
+        _xOffset = targetPosition.dx -
             _toolTipBoxSize.width -
             targetTooltipGap -
             _getArrowPadding -
@@ -738,14 +735,14 @@ class _RenderPositionDelegate extends RenderBox
       case TooltipPosition.top:
         // Arrow points down from bottom of tooltip
         arrowBoxParentData.offset = Offset(
-          _localTargetPosition.dx + halfTargetWidth - halfArrowWidth,
+          targetPosition.dx + halfTargetWidth - halfArrowWidth,
           _yOffset + _toolTipBoxSize.height - 2,
         );
 
       case TooltipPosition.bottom:
         // Arrow points up from top of tooltip
         arrowBoxParentData.offset = Offset(
-          _localTargetPosition.dx + halfTargetWidth - halfArrowWidth,
+          targetPosition.dx + halfTargetWidth - halfArrowWidth,
           _yOffset - Constants.arrowHeight + 1,
         );
 
@@ -753,14 +750,14 @@ class _RenderPositionDelegate extends RenderBox
         // Arrow points right from right side of tooltip
         arrowBoxParentData.offset = Offset(
           _xOffset + _toolTipBoxSize.width - halfArrowHeight + 4,
-          _localTargetPosition.dy + halfTargetHeight - halfArrowWidth + 4,
+          targetPosition.dy + halfTargetHeight - halfArrowWidth + 4,
         );
 
       case TooltipPosition.right:
         // Arrow points left from left side of tooltip
         arrowBoxParentData.offset = Offset(
           _xOffset - Constants.arrowHeight - 4,
-          _localTargetPosition.dy + halfTargetHeight - halfArrowHeight + 4,
+          targetPosition.dy + halfTargetHeight - halfArrowHeight + 4,
         );
     }
   }
@@ -778,40 +775,40 @@ class _RenderPositionDelegate extends RenderBox
     return switch (tooltipPosition) {
       TooltipPosition.bottom => Offset(
           // Center horizontally below target
-          _localTargetPosition.dx + centerDxForTooltip,
+          targetPosition.dx + centerDxForTooltip,
           // Position below target with appropriate offset
           // and add additional padding if arrow is shown
-          _localTargetPosition.dy +
+          targetPosition.dy +
               targetSize.height +
               targetTooltipGap +
               _getArrowPadding,
         ),
       TooltipPosition.top => Offset(
           // Center horizontally above target
-          _localTargetPosition.dx + centerDxForTooltip,
+          targetPosition.dx + centerDxForTooltip,
           // Position above target with appropriate offset
-          _localTargetPosition.dy -
+          targetPosition.dy -
               toolTipBoxSize.height -
               targetTooltipGap -
               _getArrowPadding,
         ),
       TooltipPosition.left => Offset(
           // Position to the left of target with appropriate offset
-          _localTargetPosition.dx -
+          targetPosition.dx -
               toolTipBoxSize.width -
               targetTooltipGap -
               _getArrowPadding,
           // Center vertically beside target
-          _localTargetPosition.dy + centerDyForTooltip,
+          targetPosition.dy + centerDyForTooltip,
         ),
       TooltipPosition.right => Offset(
           // Position to the right of target with appropriate offset
-          _localTargetPosition.dx +
+          targetPosition.dx +
               targetSize.width +
               targetTooltipGap +
               _getArrowPadding,
           // Center vertically beside target
-          _localTargetPosition.dy + centerDyForTooltip,
+          targetPosition.dy + centerDyForTooltip,
         ),
     };
   }
@@ -838,26 +835,24 @@ class _RenderPositionDelegate extends RenderBox
   ) {
     final arrowPadding = _getArrowPadding;
 
-    final isBottom = _localTargetPosition.dy +
+    final isBottom = targetPosition.dy +
             targetSize.height +
             totalHeight +
             targetTooltipGap +
             arrowPadding <=
         screenSize.height - screenEdgePadding;
 
-    final isTop = _localTargetPosition.dy -
-            totalHeight -
-            targetTooltipGap -
-            arrowPadding >=
-        screenEdgePadding;
+    final isTop =
+        targetPosition.dy - totalHeight - targetTooltipGap - arrowPadding >=
+            screenEdgePadding;
 
-    final isLeft = _localTargetPosition.dx -
+    final isLeft = targetPosition.dx -
             tooltipSize.width -
             targetTooltipGap -
             arrowPadding >=
         screenEdgePadding;
 
-    final isRight = _localTargetPosition.dx +
+    final isRight = targetPosition.dx +
             targetSize.width +
             tooltipSize.width +
             targetTooltipGap +

@@ -156,8 +156,8 @@ class _RenderAnimationDelegate extends _RenderPositionDelegate {
 
       // Calculate target widget bounds.
       final targetRect = Rect.fromLTWH(
-        _localTargetPosition.dx,
-        _localTargetPosition.dy,
+        targetPosition.dx,
+        targetPosition.dy,
         targetSize.width,
         targetSize.height,
       );
