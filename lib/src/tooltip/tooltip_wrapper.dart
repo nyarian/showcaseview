@@ -165,14 +165,24 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
     );
     // Calculate the target position and size
     final box = widget.showcaseController.position?.renderBox;
-    final overlayBox = widget.showcaseController.position?.overlayBox;
     // This is a workaround to avoid the error when the widget is not mounted
     // but won't happen in general cases
     if (box == null || !box.attached) {
       return const SizedBox.shrink();
     }
 
-    final targetPosition = box.localToGlobal(Offset.zero, ancestor: overlayBox);
+    final overlay = widget.showcaseController.position?.overlayBox;
+    final rootRenderObject = widget.showcaseController.rootRenderObject;
+    final targetInOverlay = box.localToGlobal(Offset.zero, ancestor: overlay);
+    final rootInOverlay =
+        rootRenderObject?.localToGlobal(Offset.zero, ancestor: overlay);
+    // Fall back to the same coordinate space if ancestor flattening breaks
+    final effectiveOffset =
+        (rootInOverlay == null || rootInOverlay == Offset.zero)
+            ? (rootRenderObject?.localToGlobal(Offset.zero) ?? Offset.zero)
+            : rootInOverlay;
+
+    final targetPosition = targetInOverlay - effectiveOffset;
     final targetSize = box.size;
 
     final defaultToolTipWidget = widget.container != null
@@ -240,9 +250,7 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
         gapBetweenContentAndAction:
             widget.tooltipActionConfig.gapBetweenContentAndAction,
         screenEdgePadding: widget.toolTipMargin,
-        showcaseOffset: widget.showcaseController.rootRenderObject
-                ?.localToGlobal(Offset.zero, ancestor: overlayBox) ??
-            Offset.zero,
+        showcaseOffset: effectiveOffset,
         targetTooltipGap: widget.targetTooltipGap,
         children: [
           // We have to use UniqueKey here to avoid the issue with the
