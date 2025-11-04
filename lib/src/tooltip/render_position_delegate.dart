@@ -89,11 +89,14 @@ class _RenderPositionDelegate extends RenderBox
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
     // Standard hit testing implementation for children
-    // if (kIsWeb) {
-    // return defaultHitTestChildren(result, position: position);
-    // } else {
-    return defaultHitTestChildren(result, position: position + showcaseOffset);
-    // }
+    if (kIsWeb) {
+      return defaultHitTestChildren(result, position: position);
+    } else {
+      return defaultHitTestChildren(
+        result,
+        position: position + showcaseOffset,
+      );
+    }
   }
 
   // Layout properties - keep only those not managed by RenderObjectManager
