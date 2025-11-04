@@ -163,21 +163,28 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
       'Provide either a custom container or a title/description for the tooltip.',
     );
 
-    // 1) Use the exact rect the highlight uses.
+    // 1) Use the same rect the highlight uses.
     final linked = widget.showcaseController.linkedShowcaseDataModel;
     final rect = linked?.rect ?? Rect.zero;
     if (rect == Rect.zero) return const SizedBox.shrink();
 
-    // 2) Overlay-local anchor and size.
+    // 2) Base overlay-local anchor and size.
     Offset targetPosition = rect.topLeft;
     final Size targetSize = rect.size;
 
-    // Optional: snap to device pixels to avoid 1–2 px drift on web/mobile.
+    // 3) Correct coordinate space mismatch for mobile compositor paint area.
+    if (!kIsWeb) {
+      final viewPadding = View.of(context).viewPadding;
+      // This shifts coordinates into physical paint space (under system bars).
+      targetPosition += Offset(0, viewPadding.top);
+    }
+
+    // 4) Snap to device pixels to avoid sub-pixel drift.
     final dpr = View.of(context).devicePixelRatio;
     double snap(double v) => (v * dpr).round() / dpr;
     targetPosition = Offset(snap(targetPosition.dx), snap(targetPosition.dy));
 
-    // 3) Overlay’s size must come from the overlay itself.
+    // 5) Overlay’s logical screen size.
     final overlayBox =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlayBox == null || !overlayBox.attached) {
@@ -185,7 +192,6 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
     }
     final Size screenSize = overlayBox.size;
 
-    // Tooltip content
     final defaultTooltip = widget.container != null
         ? MouseRegion(
             cursor: widget.onTooltipTap == null
@@ -237,10 +243,10 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
         moveController: _movingAnimationController,
         scaleAnimation: _scaleAnimation,
         moveAnimation: _movingAnimation,
-        targetPosition: targetPosition, // ← from linked rect
-        targetSize: targetSize, // ← from linked rect
+        targetPosition: targetPosition,
+        targetSize: targetSize,
         position: widget.tooltipPosition,
-        screenSize: screenSize, // ← overlay size
+        screenSize: screenSize,
         hasArrow: widget.showArrow,
         targetPadding: widget.targetPadding,
         scaleAlignment: widget.scaleAnimationAlignment,
