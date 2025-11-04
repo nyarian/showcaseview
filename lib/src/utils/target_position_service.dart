@@ -20,8 +20,6 @@
  * SOFTWARE.
  */
 
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 class TargetPositionService {
@@ -43,17 +41,13 @@ class TargetPositionService {
     required this.screenSize,
     this.padding = EdgeInsets.zero,
     this.rootRenderObject,
-  }) {
-    _getRenderBoxOffset();
-  }
+  });
 
   final RenderBox? renderBox;
   final RenderBox? overlayBox;
   final EdgeInsets padding;
   final Size screenSize;
   final RenderObject? rootRenderObject;
-
-  Offset? _boxOffset;
 
   // Caching fields to avoid redundant calculations
   Rect? _cachedRect;
@@ -68,139 +62,49 @@ class TargetPositionService {
   /// including any padding, clamped to stay within the screen boundaries.
   /// Used by the showcase system to determine where to draw highlight effects.
   Rect getRect() {
-    if (_checkBoxOrOffsetIsNull(checkDy: true, checkDx: true)) {
-      return Rect.zero;
-    }
-
-    // Use cached value if available and dimensions haven't changed
+    if (renderBox == null) return Rect.zero;
     if (_cachedRect != null && !_dimensionsChanged) {
       return _cachedRect!;
     }
-
-    final topLeft = renderBox!.size.topLeft(_boxOffset!);
-    final bottomRight = renderBox!.size.bottomRight(_boxOffset!);
-    final leftDx = topLeft.dx - padding.left;
-    final leftDy = topLeft.dy - padding.top;
-
+    final r = _computeOverlayRect();
+    final left = (r.left - padding.left).clamp(0.0, screenSize.width);
+    final top = (r.top - padding.top).clamp(0.0, screenSize.height);
+    final right = (r.right + padding.right).clamp(0.0, screenSize.width);
+    final bottom = (r.bottom + padding.bottom).clamp(0.0, screenSize.height);
     _dimensionsChanged = false;
-    return _cachedRect = Rect.fromLTRB(
-      leftDx.clamp(0, double.maxFinite),
-      leftDy.clamp(0, double.maxFinite),
-      min(bottomRight.dx + padding.right, screenSize.width),
-      min(bottomRight.dy + padding.bottom, screenSize.height),
-    );
+    return _cachedRect = Rect.fromLTRB(left, top, right, bottom);
   }
 
-  /// Gets the raw rectangle bounds of the target widget without clamping
-  ///
-  /// Unlike [getRect], this method returns the exact rectangle of the target widget
-  /// without applying any screen boundary constraints. It's used by the showcase
-  /// controller to create the cutout area in the overlay where the target widget
-  /// will be visible.
-  Rect getRectForOverlay() {
-    if (_checkBoxOrOffsetIsNull(checkDy: true, checkDx: true)) {
-      return Rect.zero;
-    }
+  /// Canonical rect in the overlay's coordinate space.
+  Rect _computeOverlayRect() {
+    final rb = renderBox!;
+    // Always resolve against overlay when present. No fallbacks that change space.
+    final origin = overlayBox != null
+        ? rb.localToGlobal(Offset.zero, ancestor: overlayBox!)
+        : rb.localToGlobal(Offset.zero);
+    return origin & rb.size;
+  }
 
-    // Use cached value if available and dimensions haven't changed
+  Rect getRectForOverlay() {
+    if (renderBox == null) return Rect.zero;
     if (_cachedRectForOverlay != null && !_dimensionsChanged) {
       return _cachedRectForOverlay!;
     }
-
-    // Compute top-left in overlay coordinate space when possible
-    final offset = renderBox!.localToGlobal(Offset.zero, ancestor: overlayBox!);
-
-    // Build rect directly from render box size
-    final rect = offset & renderBox!.size;
-
+    final rect = _computeOverlayRect();
     _dimensionsChanged = false;
     return _cachedRectForOverlay = rect;
   }
 
-  /// Gets the bottom edge position of the target widget with padding.
-  double getBottom() {
-    if (_checkBoxOrOffsetIsNull(checkDy: true)) return padding.bottom;
-    final bottomRight = renderBox!.size.bottomRight(_boxOffset!);
-    return bottomRight.dy + padding.bottom;
-  }
-
-  /// Gets the top edge position of the target widget with padding.
-  double getTop() {
-    if (_checkBoxOrOffsetIsNull(checkDy: true)) return -padding.top;
-    final topLeft = renderBox!.size.topLeft(_boxOffset!);
-    return topLeft.dy - padding.top;
-  }
-
-  /// Gets the left edge position of the target widget with padding.
-  double getLeft() {
-    if (_checkBoxOrOffsetIsNull(checkDx: true)) return -padding.left;
-    final topLeft = renderBox!.size.topLeft(_boxOffset!);
-    return topLeft.dx - padding.left;
-  }
-
-  /// Gets the right edge position of the target widget with padding.
-  double getRight() {
-    if (_checkBoxOrOffsetIsNull(checkDx: true)) return padding.right;
-    final bottomRight = renderBox!.size.bottomRight(_boxOffset!);
-    return bottomRight.dx + padding.right;
-  }
-
-  /// Calculates the total height of the target widget including padding.
-  double getHeight() => getBottom() - getTop();
-
-  /// Calculates the total width of the target widget including padding.
-  double getWidth() => getRight() - getLeft();
-
-  /// Calculates the horizontal center position of the target widget.
+  double getTop() => getRect().top;
+  double getBottom() => getRect().bottom;
+  double getLeft() => getRect().left;
+  double getRight() => getRect().right;
+  double getHeight() => getRect().height;
+  double getWidth() => getRect().width;
   double getCenter() => (getLeft() + getRight()) * 0.5;
 
-  /// Gets the top-left corner of the render box in global coordinates.
-  Offset topLeft() {
-    final box = renderBox;
-    if (box == null) return Offset.zero;
+  Offset topLeft() => getRectForOverlay().topLeft;
 
-    return box.size.topLeft(
-      box.localToGlobal(Offset.zero, ancestor: overlayBox ?? rootRenderObject),
-    );
-  }
-
-  /// Gets the center position of the target widget in global coordinates.
-  Offset getOffset() {
-    if (renderBox == null) return Offset.zero;
-    // Use overlay-relative coordinates if overlayBox exists
-    if (overlayBox != null) {
-      return renderBox!.localToGlobal(Offset.zero, ancestor: overlayBox!);
-    }
-    // Fallback to global if overlay not available
-    return renderBox!.localToGlobal(Offset.zero);
-  }
-
-  /// Calculates and stores the global position of the render box.
-  ///
-  /// This method translates the widget's local coordinates to global screen
-  /// coordinates, optionally relative to a specified ancestor widget.
-  void _getRenderBoxOffset() {
-    if (renderBox == null) return;
-
-    _boxOffset = renderBox?.localToGlobal(
-      Offset.zero,
-      ancestor: overlayBox ?? rootRenderObject,
-    );
-  }
-
-  /// Checks if the render box or its offset are null or have invalid
-  /// components.
-  ///
-  /// This helper method is used internally to safely handle cases where
-  /// position calculations might fail due to missing or invalid render
-  /// information.
-  ///
-  /// * [checkDy] - Whether to check if the y-coordinate is valid
-  /// * [checkDx] - Whether to check if the x-coordinate is valid
-  bool _checkBoxOrOffsetIsNull({bool checkDy = false, bool checkDx = false}) {
-    return renderBox == null ||
-        _boxOffset == null ||
-        (checkDx && (_boxOffset?.dx.isNaN ?? true)) ||
-        (checkDy && (_boxOffset?.dy.isNaN ?? true));
-  }
+  /// Overlay-local center (used by controller call sites)
+  Offset getOffset() => getRectForOverlay().center;
 }

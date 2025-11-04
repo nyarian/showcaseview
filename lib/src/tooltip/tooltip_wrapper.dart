@@ -163,34 +163,19 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
       'Provide either a custom container or a title/description for the tooltip.',
     );
 
-    // 1) Use the same rect the highlight uses.
     final linked = widget.showcaseController.linkedShowcaseDataModel;
     final rect = linked?.rect ?? Rect.zero;
     if (rect == Rect.zero) return const SizedBox.shrink();
 
-    // 2) Base overlay-local anchor and size.
-    Offset targetPosition = rect.topLeft;
-    final Size targetSize = rect.size;
+    final targetPosition = rect.topLeft;
+    final targetSize = rect.size;
 
-    // 3) Correct coordinate space mismatch for mobile compositor paint area.
-    if (!kIsWeb) {
-      final viewPadding = View.of(context).viewPadding;
-      // This shifts coordinates into physical paint space (under system bars).
-      targetPosition += Offset(0, viewPadding.top);
-    }
-
-    // 4) Snap to device pixels to avoid sub-pixel drift.
-    final dpr = View.of(context).devicePixelRatio;
-    double snap(double v) => (v * dpr).round() / dpr;
-    targetPosition = Offset(snap(targetPosition.dx), snap(targetPosition.dy));
-
-    // 5) Overlay’s logical screen size.
     final overlayBox =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlayBox == null || !overlayBox.attached) {
       return const SizedBox.shrink();
     }
-    final Size screenSize = overlayBox.size;
+    final screenSize = overlayBox.size;
 
     final defaultTooltip = widget.container != null
         ? MouseRegion(

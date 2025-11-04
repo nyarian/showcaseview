@@ -75,31 +75,30 @@ class TargetWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final targetWidgetContent = GestureDetector(
+    final highlight = GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
       onDoubleTap: onDoubleTap,
       behavior: HitTestBehavior.translucent,
-      child: Container(
-        height: size.height.abs(),
-        width: size.width.abs(),
-        margin: targetPadding,
-        decoration: ShapeDecoration(
-          shape: radius == null
-              ? shapeBorder
-              : RoundedRectangleBorder(borderRadius: radius!),
+      child: SizedBox(
+        height: size.height + targetPadding.vertical,
+        width: size.width + targetPadding.horizontal,
+        child: DecoratedBox(
+          decoration: ShapeDecoration(
+            shape: radius == null
+                ? shapeBorder
+                : RoundedRectangleBorder(borderRadius: radius!),
+          ),
         ),
       ),
     );
+
     return Positioned(
       top: offset.dy - targetPadding.top,
       left: offset.dx - targetPadding.left,
       child: disableDefaultChildGestures
-          ? IgnorePointer(child: targetWidgetContent)
-          : MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: targetWidgetContent,
-            ),
+          ? IgnorePointer(child: highlight)
+          : MouseRegion(cursor: SystemMouseCursors.click, child: highlight),
     );
   }
 }
