@@ -160,39 +160,35 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
     assert(
       widget.container != null ||
           (widget.title != null || widget.description != null),
-      'Provide either a custom container or a title/description for the '
-      'tooltip. Both cannot be null.',
+      'Provide either a custom container or a title/description for the tooltip.',
     );
-    // Calculate the target position and size
+
     final box = widget.showcaseController.position?.renderBox;
-    // This is a workaround to avoid the error when the widget is not mounted
-    // but won't happen in general cases
-    if (box == null || !box.attached) {
+    final overlayBox = widget.showcaseController.position?.overlayBox;
+
+    // Early exit if widget is not yet mounted or overlay not found
+    if (box == null ||
+        overlayBox == null ||
+        !box.attached ||
+        !overlayBox.attached) {
       return const SizedBox.shrink();
     }
 
-    final overlay = widget.showcaseController.position?.overlayBox;
-    final rootRenderObject = widget.showcaseController.rootRenderObject;
-    final targetInOverlay = box.localToGlobal(Offset.zero, ancestor: overlay);
-    final rootInOverlay =
-        rootRenderObject?.localToGlobal(Offset.zero, ancestor: overlay);
-    // Fall back to the same coordinate space if ancestor flattening breaks
-    final effectiveOffset =
-        (rootInOverlay == null || rootInOverlay == Offset.zero)
-            ? (rootRenderObject?.localToGlobal(Offset.zero) ?? Offset.zero)
-            : rootInOverlay;
-
-    final targetPosition = targetInOverlay - effectiveOffset;
+    // --- COORDINATE NORMALIZATION ---
+    final targetPosition = box.localToGlobal(Offset.zero, ancestor: overlayBox);
     final targetSize = box.size;
 
-    final defaultToolTipWidget = widget.container != null
+    // The overlay defines our coordinate space.
+    // Using its size ensures consistent screen bounds on web and mobile.
+    final screenSize = overlayBox.size;
+    final defaultTooltip = widget.container != null
         ? MouseRegion(
             cursor: widget.onTooltipTap == null
                 ? MouseCursor.defer
                 : SystemMouseCursors.click,
             child: GestureDetector(
               onTap: widget.onTooltipTap,
-              child: widget.container ?? const SizedBox.shrink(),
+              child: widget.container!,
             ),
           )
         : MouseRegion(
@@ -228,6 +224,8 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
               ),
             ),
           );
+
+    // --- RETURN RENDERED TOOLTIP WRAPPER ---
     return Material(
       type: MaterialType.transparency,
       child: _AnimatedTooltipMultiLayout(
@@ -238,8 +236,7 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
         targetPosition: targetPosition,
         targetSize: targetSize,
         position: widget.tooltipPosition,
-        screenSize: widget.showcaseController.rootWidgetSize ??
-            MediaQuery.sizeOf(context),
+        screenSize: screenSize,
         hasArrow: widget.showArrow,
         targetPadding: widget.targetPadding,
         scaleAlignment: widget.scaleAnimationAlignment,
@@ -250,7 +247,8 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
         gapBetweenContentAndAction:
             widget.tooltipActionConfig.gapBetweenContentAndAction,
         screenEdgePadding: widget.toolTipMargin,
-        showcaseOffset: effectiveOffset,
+        // showcaseOffset is unused now since everything is overlay-local.
+        showcaseOffset: Offset.zero,
         targetTooltipGap: widget.targetTooltipGap,
         children: [
           // We have to use UniqueKey here to avoid the issue with the
@@ -261,7 +259,7 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
           _TooltipLayoutId(
             id: TooltipLayoutSlot.tooltipBox,
             key: UniqueKey(),
-            child: defaultToolTipWidget,
+            child: defaultTooltip,
           ),
           if (widget.tooltipActions.isNotEmpty &&
               (widget.tooltipActionConfig.position.isOutside ||

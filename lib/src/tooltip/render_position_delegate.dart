@@ -283,10 +283,6 @@ class _RenderPositionDelegate extends RenderBox
       tooltipPosition: tooltipPosition,
     );
 
-    if (kIsWeb) {
-      _yOffset -= showcaseOffset.dy;
-    }
-
     // Set position in manager
     tooltipBoxManager.setOffset(initialPosition.dx, initialPosition.dy);
 
