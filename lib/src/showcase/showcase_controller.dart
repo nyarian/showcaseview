@@ -247,6 +247,7 @@ class ShowcaseController {
         Overlay.of(_context).context.findRenderObject() as RenderBox?;
     final screenSize = MediaQuery.sizeOf(_context);
     final size = rootWidgetSize ?? screenSize;
+
     final newPosition = TargetPositionService(
       rootRenderObject: rootRenderObject,
       screenSize: size,
@@ -257,6 +258,7 @@ class ShowcaseController {
 
     position = newPosition;
     final rect = newPosition.getRectForOverlay();
+
     linkedShowcaseDataModel = LinkedShowcaseDataModel(
       rect: isScrollRunning ? Rect.zero : rect,
       radius: config.targetBorderRadius,
@@ -264,8 +266,9 @@ class ShowcaseController {
       isCircle: config.targetShapeBorder is CircleBorder,
     );
 
+    // Use overlay-space offset (same origin as rect)
     _buildOverlayOnTarget(
-      offset: newPosition.getOffset(),
+      offset: rect.topLeft,
       size: rect.size,
       rectBound: rect,
       screenSize: size,

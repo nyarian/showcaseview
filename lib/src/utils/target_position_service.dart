@@ -79,9 +79,7 @@ class TargetPositionService {
   Rect _computeOverlayRect() {
     final rb = renderBox!;
     // Always resolve against overlay when present. No fallbacks that change space.
-    final origin = overlayBox != null
-        ? rb.localToGlobal(Offset.zero, ancestor: overlayBox!)
-        : rb.localToGlobal(Offset.zero);
+    final origin = rb.localToGlobal(Offset.zero, ancestor: overlayBox);
     return origin & rb.size;
   }
 
