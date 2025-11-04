@@ -88,15 +88,7 @@ class _RenderPositionDelegate extends RenderBox
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    // Standard hit testing implementation for children
-    if (kIsWeb) {
-      return defaultHitTestChildren(result, position: position);
-    } else {
-      return defaultHitTestChildren(
-        result,
-        position: position + showcaseOffset,
-      );
-    }
+    return defaultHitTestChildren(result, position: position);
   }
 
   // Layout properties - keep only those not managed by RenderObjectManager
@@ -325,8 +317,7 @@ class _RenderPositionDelegate extends RenderBox
 
     // Calculate minimum width that would fit
     final minWidth = isLeftEdge
-        ? targetPosition.dx -
-            showcaseOffset.dx -
+        ? _localTargetPosition.dx -
             screenEdgePadding -
             targetTooltipGap -
             targetPadding.left -
@@ -347,7 +338,7 @@ class _RenderPositionDelegate extends RenderBox
           if (isLeftEdge) {
             // Resize tooltip to fit on left edge
             _maxWidth = minWidth;
-            _xOffset = screenEdgePadding + showcaseOffset.dx;
+            _xOffset = screenEdgePadding;
             _needToResize = true;
           } else {
             // Flip to opposite side
@@ -374,16 +365,13 @@ class _RenderPositionDelegate extends RenderBox
       if (_maxWidth > _availableScreenWidth) {
         _maxWidth = _availableScreenWidth;
         _needToResize = true;
-        _xOffset = screenEdgePadding + showcaseOffset.dx;
+        _xOffset = screenEdgePadding;
       } else if (!isLeftEdge) {
         // Align to right edge
-        _xOffset = screenSize.width -
-            screenEdgePadding -
-            _toolTipBoxSize.width +
-            showcaseOffset.dx;
+        _xOffset = screenSize.width - screenEdgePadding - _toolTipBoxSize.width;
       } else {
         // Align to left edge
-        _xOffset = screenEdgePadding + showcaseOffset.dx;
+        _xOffset = screenEdgePadding;
       }
     }
   }
@@ -522,16 +510,13 @@ class _RenderPositionDelegate extends RenderBox
       // For left/right positions, ensure height fits
       if (_maxHeight > _availableScreenHeight) {
         _needToResize = true;
-        _yOffset = screenEdgePadding + showcaseOffset.dy;
+        _yOffset = screenEdgePadding;
       } else if (!isTopEdge) {
         // Align to bottom edge (only for bottom boundary handling)
-        _yOffset = screenSize.height -
-            screenEdgePadding -
-            tooltipHeight +
-            showcaseOffset.dy;
+        _yOffset = screenSize.height - screenEdgePadding - tooltipHeight;
       } else {
         // Align to top edge (only for top boundary handling)
-        _yOffset = screenEdgePadding + showcaseOffset.dy;
+        _yOffset = screenEdgePadding;
       }
     }
   }
@@ -556,13 +541,10 @@ class _RenderPositionDelegate extends RenderBox
     if (isTopEdge) {
       // Top edge - resize and keep at top
       _maxHeight -= screenEdgePadding - _xOffset;
-      _yOffset = screenEdgePadding + showcaseOffset.dy;
+      _yOffset = screenEdgePadding;
     } else {
       // Bottom edge - keep at bottom
-      _yOffset = screenSize.height -
-          showcaseOffset.dy -
-          screenEdgePadding -
-          _maxHeight;
+      _yOffset = screenSize.height - screenEdgePadding - _maxHeight;
     }
   }
 
@@ -600,7 +582,6 @@ class _RenderPositionDelegate extends RenderBox
     _yOffset = initialPosition.dy;
   }
 
-  /// Handle flipping to opposite side if needed
   void _handleFlipping() {
     if (!_needToFlip) return;
 
@@ -611,7 +592,8 @@ class _RenderPositionDelegate extends RenderBox
         _yOffset = _localTargetPosition.dy -
             _toolTipBoxSize.height -
             targetTooltipGap -
-            _getArrowPadding;
+            _getArrowPadding -
+            targetPadding.top;
 
       case TooltipPosition.top:
         // Flip from top to bottom
@@ -619,7 +601,8 @@ class _RenderPositionDelegate extends RenderBox
         _yOffset = _localTargetPosition.dy +
             targetSize.height +
             targetTooltipGap +
-            _getArrowPadding;
+            _getArrowPadding +
+            targetPadding.bottom;
 
       case TooltipPosition.left:
         // Flip from left to right
@@ -627,7 +610,8 @@ class _RenderPositionDelegate extends RenderBox
         _xOffset = _localTargetPosition.dx +
             targetSize.width +
             targetTooltipGap +
-            _getArrowPadding;
+            _getArrowPadding +
+            targetPadding.right;
 
       case TooltipPosition.right:
         // Flip from right to left
@@ -635,7 +619,8 @@ class _RenderPositionDelegate extends RenderBox
         _xOffset = _localTargetPosition.dx -
             _toolTipBoxSize.width -
             targetTooltipGap -
-            _getArrowPadding;
+            _getArrowPadding -
+            targetPadding.left;
     }
   }
 
@@ -853,21 +838,26 @@ class _RenderPositionDelegate extends RenderBox
   ) {
     final arrowPadding = _getArrowPadding;
 
-    final t = _localTargetPosition;
-    final isBottom = t.dy +
+    final isBottom = _localTargetPosition.dy +
             targetSize.height +
             totalHeight +
             targetTooltipGap +
             arrowPadding <=
         screenSize.height - screenEdgePadding;
 
-    final isTop = t.dy - totalHeight - targetTooltipGap - arrowPadding >=
+    final isTop = _localTargetPosition.dy -
+            totalHeight -
+            targetTooltipGap -
+            arrowPadding >=
         screenEdgePadding;
 
-    final isLeft = t.dx - tooltipSize.width - targetTooltipGap - arrowPadding >=
+    final isLeft = _localTargetPosition.dx -
+            tooltipSize.width -
+            targetTooltipGap -
+            arrowPadding >=
         screenEdgePadding;
 
-    final isRight = t.dx +
+    final isRight = _localTargetPosition.dx +
             targetSize.width +
             tooltipSize.width +
             targetTooltipGap +
