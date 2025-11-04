@@ -47,7 +47,6 @@ class _RenderAnimationDelegate extends _RenderPositionDelegate {
     required super.toolTipSlideEndDistance,
     required super.screenEdgePadding,
     required super.targetPadding,
-    required super.showcaseOffset,
     required super.targetTooltipGap,
   })  : _scaleController = scaleController,
         _moveController = moveController,
@@ -139,6 +138,75 @@ class _RenderAnimationDelegate extends _RenderPositionDelegate {
 
   @override
   bool get isRepaintBoundary => true;
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    // Mirror the same alignment calc as in paint()
+    final targetRect = Rect.fromLTWH(
+      targetPosition.dx,
+      targetPosition.dy,
+      targetSize.width,
+      targetSize.height,
+    );
+
+    final halfTargetWidth = targetRect.width * 0.5;
+    final halfTargetHeight = targetRect.height * 0.5;
+
+    // Same alignment logic as paint: default to tooltipPosition.scaleAlignment
+    final Alignment effectiveAlign =
+        (scaleAlignment ?? tooltipPosition.scaleAlignment);
+    Offset scaleOrigin = Offset(
+      targetRect.left + halfTargetWidth + (effectiveAlign.x * halfTargetWidth),
+      targetRect.top + halfTargetHeight + (effectiveAlign.y * halfTargetHeight),
+    );
+
+    switch (tooltipPosition) {
+      case TooltipPosition.top:
+        scaleOrigin -=
+            Offset(0, targetPadding.top + Constants.extraAlignmentOffset);
+      case TooltipPosition.bottom:
+        scaleOrigin +=
+            Offset(0, targetPadding.bottom + Constants.extraAlignmentOffset);
+      case TooltipPosition.left:
+        scaleOrigin -=
+            Offset(targetPadding.left + Constants.extraAlignmentOffset, 0);
+      case TooltipPosition.right:
+        scaleOrigin +=
+            Offset(targetPadding.right + Constants.extraAlignmentOffset, 0);
+    }
+
+    // Same movement offset as paint
+    final Offset moveOffset = tooltipPosition.calculateMoveOffset(
+      _moveAnimation.value,
+      toolTipSlideEndDistance,
+    );
+
+    final double s =
+        (_scaleAnimation.value == 0) ? 0.0001 : _scaleAnimation.value;
+
+    // Iterate children in reverse paint order for correct hit test priority
+    RenderBox? child = lastChild;
+    while (child != null) {
+      final parentData = child.parentData! as MultiChildLayoutParentData;
+      final childOffset = parentData.offset;
+
+      // In paint we do:
+      //   canvas.translate(scaleOrigin) ; canvas.scale(s);
+      //   paintChild(child, moveOffset + childOffset - scaleOrigin);
+      //
+      // So parent-space point P maps to child-space C as:
+      //   P = scaleOrigin + s * (C + moveOffset + childOffset - scaleOrigin)
+      // => C = ((P - scaleOrigin) / s) - (moveOffset + childOffset - scaleOrigin)
+
+      final Offset localForChild = ((position - scaleOrigin) / s) -
+          (moveOffset + childOffset - scaleOrigin);
+
+      final bool isHit = child.hitTest(result, position: localForChild);
+      if (isHit) return true;
+      child = parentData.previousSibling;
+    }
+    return false;
+  }
 
   @override
   void paint(PaintingContext context, Offset offset) {

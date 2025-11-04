@@ -53,7 +53,6 @@ class _RenderPositionDelegate extends RenderBox
     required this.gapBetweenContentAndAction,
     required this.screenEdgePadding,
     required this.targetPadding,
-    required this.showcaseOffset,
     required this.targetTooltipGap,
   });
 
@@ -70,12 +69,6 @@ class _RenderPositionDelegate extends RenderBox
   EdgeInsets targetPadding;
   double targetTooltipGap;
 
-  /// This is used when there is some space around showcaseview as this widget
-  /// implementation works in global coordinate system so because of that we
-  /// need to manage local position by our self
-  /// To check this usecase wrap material app in padding widget
-  Offset showcaseOffset;
-
   /// Calculated tooltip position after layout
   late TooltipPosition tooltipPosition;
 
@@ -84,13 +77,6 @@ class _RenderPositionDelegate extends RenderBox
     // Ensure all children have the correct parent data type
     if (child.parentData is MultiChildLayoutParentData) return;
     child.parentData = MultiChildLayoutParentData();
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    // On web, pointer offsets are in the global coordinate system.
-    final localPosition = position - showcaseOffset;
-    return defaultHitTestChildren(result, position: localPosition);
   }
 
   // Layout properties - keep only those not managed by RenderObjectManager
