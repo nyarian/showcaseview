@@ -175,13 +175,10 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
     }
 
     // --- COORDINATE NORMALIZATION ---
-    var targetPosition = box.localToGlobal(Offset.zero, ancestor: overlayBox);
-    if (!kIsWeb) {
-      final padding = MediaQuery.viewPaddingOf(context);
-      final safeInset = Offset(padding.left, padding.top);
-      targetPosition += safeInset;
-    }
-    final targetSize = box.size;
+    final position = widget.showcaseController.position;
+    if (position == null) return const SizedBox.shrink();
+    final targetPosition = position.getOffset(); // already in overlay space
+    final targetSize = position.renderBox?.size ?? Size.zero;
 
     // The overlay defines our coordinate space.
     // Using its size ensures consistent screen bounds on web and mobile.
