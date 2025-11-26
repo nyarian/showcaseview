@@ -184,7 +184,9 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
                 : SystemMouseCursors.click,
             child: GestureDetector(
               onTap: widget.onTooltipTap,
-              child: widget.container!,
+              child: RepaintBoundary(
+                child: widget.container ?? const SizedBox.shrink(),
+              ),
             ),
           )
         : MouseRegion(
@@ -193,29 +195,31 @@ class _ToolTipWrapperState extends State<ToolTipWrapper>
                 : SystemMouseCursors.click,
             child: GestureDetector(
               onTap: widget.onTooltipTap,
-              child: Container(
-                padding: widget.tooltipPadding,
-                decoration: BoxDecoration(
-                  color: widget.tooltipBackgroundColor,
-                  borderRadius: widget.tooltipBorderRadius ??
-                      const BorderRadius.all(Radius.circular(8)),
-                ),
-                child: ToolTipContent(
-                  title: widget.title,
-                  description: widget.description,
-                  titleTextAlign: widget.titleTextAlign,
-                  descriptionTextAlign: widget.descriptionTextAlign,
-                  titleAlignment: widget.titleAlignment,
-                  descriptionAlignment: widget.descriptionAlignment,
-                  textColor: widget.textColor,
-                  titleTextStyle: widget.titleTextStyle,
-                  descTextStyle: widget.descTextStyle,
-                  titlePadding: widget.titlePadding,
-                  descriptionPadding: widget.descriptionPadding,
-                  titleTextDirection: widget.titleTextDirection,
-                  descriptionTextDirection: widget.descriptionTextDirection,
-                  tooltipActionConfig: widget.tooltipActionConfig,
-                  tooltipActions: widget.tooltipActions,
+              child: RepaintBoundary(
+                child: Container(
+                  padding: widget.tooltipPadding,
+                  decoration: BoxDecoration(
+                    color: widget.tooltipBackgroundColor,
+                    borderRadius: widget.tooltipBorderRadius ??
+                        const BorderRadius.all(Radius.circular(8)),
+                  ),
+                  child: ToolTipContent(
+                    title: widget.title,
+                    description: widget.description,
+                    titleTextAlign: widget.titleTextAlign,
+                    descriptionTextAlign: widget.descriptionTextAlign,
+                    titleAlignment: widget.titleAlignment,
+                    descriptionAlignment: widget.descriptionAlignment,
+                    textColor: widget.textColor,
+                    titleTextStyle: widget.titleTextStyle,
+                    descTextStyle: widget.descTextStyle,
+                    titlePadding: widget.titlePadding,
+                    descriptionPadding: widget.descriptionPadding,
+                    titleTextDirection: widget.titleTextDirection,
+                    descriptionTextDirection: widget.descriptionTextDirection,
+                    tooltipActionConfig: widget.tooltipActionConfig,
+                    tooltipActions: widget.tooltipActions,
+                  ),
                 ),
               ),
             ),
